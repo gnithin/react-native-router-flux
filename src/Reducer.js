@@ -283,7 +283,10 @@ export function getCurrent(state) {
 function update(state, action) {
   // find parent in the state
   const props = { ...state.scenes[action.key], ...action };
-  assert(props.parent, `No parent is defined for route=${action.key}`);
+
+  // Skipping the assertion here
+  // assert(props.parent, `No parent is defined for route=${action.key}`);
+  
   return inject(state, action, props, state.scenes);
 }
 
@@ -303,25 +306,29 @@ function reducer({ initialState, scenes }) {
       if (ActionMap[action.type] === ActionConst.REFRESH) {
         let key = action.key;
         let child = findElement(state, key, action.type) || state.scenes[key];
-        let sceneKey = child.sceneKey;
-        if (child.base) {
-          child = { ...state.scenes[child.base], ...child };
-          assert(state.scenes[child.base], `No scene exists for base=${child.base}`);
-          key = state.scenes[child.base].key;
-          sceneKey = state.scenes[child.base].sceneKey;
-        }
-        assert(child, `missed child data for key=${key}`);
-        // evaluate functions within actions to allow conditional set, like switch values
-        const evaluated = {};
-        Object.keys(action).forEach((el) => {
-          if (typeof action[el] === 'function' && typeof child[el] !== 'undefined'
-            && typeof child[el] !== typeof action[el]) {
-            evaluated[el] = action[el](child[el], child);
-          }
-        });
-        action = { ...child, ...action, ...evaluated, sceneKey, key };
 
-        // console.log("REFRESH ACTION:", action);
+        if(typeof child !== "undefined"){
+          // assert(child, 'child should not be empty - for key - ' + key + ' and type - ' + action.type);
+          let sceneKey = child.sceneKey;
+          if (child.base) {
+            child = { ...state.scenes[child.base], ...child };
+            assert(state.scenes[child.base], `No scene exists for base=${child.base}`);
+            key = state.scenes[child.base].key;
+            sceneKey = state.scenes[child.base].sceneKey;
+          }
+          assert(child, `missed child data for key=${key}`);
+          // evaluate functions within actions to allow conditional set, like switch values
+          const evaluated = {};
+          Object.keys(action).forEach(el => {
+            if (typeof action[el] === 'function' && typeof child[el] !== 'undefined'
+              && typeof child[el] !== typeof action[el]) {
+              evaluated[el] = action[el](child[el], child);
+            }
+          });
+          action = { ...child, ...action, ...evaluated, sceneKey, key };
+
+          // console.log("REFRESH ACTION:", action);
+        }
       } else {
         const scene = state.scenes[action.key];
         assert(scene, `missed route data for key=${action.key}`);
